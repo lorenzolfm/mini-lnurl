@@ -1,0 +1,14 @@
+version: "3.5"
+services:
+  bitcoin:
+    image: lightninglabs/bitcoin-core:latest
+    container_name: mini-lnurl-bitcoin
+    volumes: 
+      - ./configs/bitcoin.conf:/home/bitcoin/.bitcoin/bitcoin.conf
+  lnd:
+    image: lightninglabs/lnd:v0.17.3-beta
+    container_name: mini-lnurl-lnd
+    depends_on:
+      - bitcoin
+    volumes:
+      - ./configs/lnd.conf:/root/.lnd/lnd.conf
