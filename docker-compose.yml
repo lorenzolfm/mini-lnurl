@@ -1,14 +1,54 @@
 version: "3.5"
 services:
-  bitcoin:
-    image: lightninglabs/bitcoin-core:latest
-    container_name: mini-lnurl-bitcoin
-    volumes: 
-      - ./configs/bitcoin.conf:/home/bitcoin/.bitcoin/bitcoin.conf
-  lnd:
-    image: lightninglabs/lnd:v0.17.3-beta
-    container_name: mini-lnurl-lnd
-    depends_on:
-      - bitcoin
+  bitcoin-core:
+    container_name: mini-lnurl-bitcoin-core
+    image: lightninglabs/bitcoin-core:26-alpine
+    command: -printtoconsole
+      -prune=4096
+      -testnet=1
+      -rpcuser=dev
+      -rpcpassword=dev
+      -rpcbind=0.0.0.0
+      -rpcport=18332
+      -rpcallowip=0.0.0.0/0
+      -zmqpubrawtx=tcp://0.0.0.0:28332
+      -zmqpubrawblock=tcp://0.0.0.0:28333
     volumes:
-      - ./configs/lnd.conf:/root/.lnd/lnd.conf
+      - btc_data:/home/bitcoin/.bitcoin/
+    networks:
+      - mini-lnurl-network
+  lnd:
+    container_name: mini-lnurl-lnd
+    image: lightninglabs/lnd:v0.17.3-beta
+    depends_on:
+      - bitcoin-core
+    command: --bitcoin.active
+      --bitcoin.testnet
+      --bitcoin.node=bitcoind
+      --bitcoind.rpcuser=dev
+      --bitcoind.rpcpass=dev
+      --bitcoind.zmqpubrawtx=tcp://bitcoin-core:28332
+      --bitcoind.zmqpubrawblock=tcp://bitcoin-core:28333
+      --rpclisten=localhost:10009
+      --bitcoind.rpchost=bitcoin-core
+      --debuglevel=info
+    ports:
+      - "9735:9735"
+      - "10009:10009"
+      - '8081:8081'
+    volumes:
+      - lnd:/lnd
+    networks:
+      - mini-lnurl-network
+    links:
+      - "bitcoin-core:blockchain"
+
+networks:
+  mini-lnurl-network:
+    driver: bridge
+
+volumes:
+  btc_data:
+    driver: local
+  lnd:
+    driver: local
